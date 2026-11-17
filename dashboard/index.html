@@ -1,0 +1,85 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Token Launch Radar — radar-2</title>
+<link rel="stylesheet" href="app.css">
+</head>
+<body>
+<header class="masthead">
+  <p class="kicker">make.fun · token-radar-01</p>
+  <h1>Token Launch Radar</h1>
+  <p class="lede" id="lede">Loading the board…</p>
+</header>
+
+<section class="panel" id="model-panel">
+  <h2>How the radar prices a launch</h2>
+  <p id="model-text">Loading the model…</p>
+  <div class="chips" id="model-chips"></div>
+</section>
+
+<nav class="views">
+  <a href="#" data-view="board">Board</a>
+  <a href="#live" data-view="live">Already live</a>
+  <label class="filter">Category
+    <select id="category-select"><option value="">All categories</option></select>
+  </label>
+</nav>
+
+<main>
+  <section id="board-view">
+    <table id="board-table">
+      <thead>
+        <tr>
+          <th class="num">#</th><th>Protocol</th><th>Category</th>
+          <th class="num">TVL</th><th class="num">7d</th>
+          <th class="num">Multiple</th><th class="num">Implied launch value</th>
+        </tr>
+      </thead>
+      <tbody id="board-body"></tbody>
+    </table>
+    <p class="note" id="board-note"></p>
+  </section>
+
+  <section id="live-view" hidden>
+    <h2>Already live — set aside</h2>
+    <p class="note">These protocols already have a token, so they are not farm
+    targets. They are the comparables the category multiples are measured
+    from; only the ones above the TVL floor are listed here.</p>
+    <table id="live-table">
+      <thead>
+        <tr><th>Protocol</th><th>Category</th><th class="num">TVL</th>
+        <th class="num">Market cap</th><th class="num">mcap / TVL</th></tr>
+      </thead>
+      <tbody id="live-body"></tbody>
+    </table>
+  </section>
+
+  <section id="detail-view" hidden>
+    <p><a href="#" id="back-link">← Back to the board</a></p>
+    <h2 id="detail-name"></h2>
+    <p class="detail-sub" id="detail-sub"></p>
+    <div class="detail-grid">
+      <div class="panel">
+        <h3>Implied value, recomputed on this page</h3>
+        <dl id="detail-math"></dl>
+        <p class="note" id="detail-check"></p>
+      </div>
+      <div class="panel">
+        <h3>Farm plan</h3>
+        <p class="note" id="farm-summary"></p>
+        <ol id="farm-steps"></ol>
+      </div>
+    </div>
+  </section>
+</main>
+
+<footer>
+  <p id="footer-note"></p>
+</footer>
+
+<script src="../data.js"></script>
+<script src="app.js"></script>
+</body>
+</html>

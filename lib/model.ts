@@ -290,17 +290,34 @@ export interface BoardRow {
   chains: string[];
   tvl_usd: number;
   change_7d: number | null;
+  mcap_usd: number | null;
+  listed_at: string | null;
+  gecko_id: string | null;
+  symbol: string | null;
+  token_status: 'pre-token';
   age_days: number;
-  watchlist: boolean;
-  implied_usd: number;
+  implied_value_usd: number;
   model: {
-    version: string;
-    category_multiple: number;
-    comps: number;
-    growth_mult: number;
-    maturity_mult: number;
+    base_multiple: number;
+    growth_pct: number;
+    growth_multiplier: number;
+    maturity_multiplier: number;
+    age_days: number;
   };
-  farm: { capital_usd: number; hold_days: number; steps: string[] };
+  farm_steps: string[];
+}
+
+/** Page-only extras for one board row, keyed by slug in Board.details: what
+ * data.js adds on top of the board's own fields — the watchlist flag, the
+ * comp count behind the multiple, the unrounded multipliers the page
+ * recomputes with, and the farm plan's capital and hold. */
+export interface RowDetail {
+  watchlist: boolean;
+  comps: number;
+  growth_mult: number;
+  maturity_mult: number;
+  capital_usd: number;
+  hold_days: number;
 }
 
 /** A live-token protocol the dashboard sets aside in its own view. */
@@ -317,6 +334,7 @@ export interface Board {
   rows: BoardRow[];
   live: LiveRow[];
   pricing: Pricing;
+  details: Map<string, RowDetail>;
 }
 
 /**
@@ -335,9 +353,19 @@ export function buildBoard(snapshot: Snapshot): Board {
     if (!isRankable(p)) continue;
     if (watch.has(p.slug) || p.tvl_usd < snapshot.floor_usd) picked.push(p);
   }
+  const details = new Map<string, RowDetail>();
   const rows: BoardRow[] = picked.map((p) => {
     const price = multipleFor(pricing, p.category);
     const age = ageDays(p.listed_at, snapshot.as_of);
+    const plan = farmPlan(p, p.category);
+    details.set(p.slug, {
+      watchlist: watch.has(p.slug),
+      comps: price.comps,
+      growth_mult: growthMult(p.change_7d),
+      maturity_mult: maturityMult(age),
+      capital_usd: plan.capital_usd,
+      hold_days: plan.hold_days,
+    });
     return {
       rank: 0, // assigned after the sort
       slug: p.slug,
@@ -346,20 +374,24 @@ export function buildBoard(snapshot: Snapshot): Board {
       chains: p.chains,
       tvl_usd: p.tvl_usd,
       change_7d: p.change_7d,
+      mcap_usd: p.mcap_usd,
+      listed_at: p.listed_at,
+      gecko_id: p.gecko_id,
+      symbol: p.symbol,
+      token_status: 'pre-token',
       age_days: age,
-      watchlist: watch.has(p.slug),
-      implied_usd: impliedValue(p.tvl_usd, price.multiple, p.change_7d, age),
+      implied_value_usd: impliedValue(p.tvl_usd, price.multiple, p.change_7d, age),
       model: {
-        version: MODEL_VERSION,
-        category_multiple: price.multiple,
-        comps: price.comps,
-        growth_mult: growthMult(p.change_7d),
-        maturity_mult: maturityMult(age),
+        base_multiple: price.multiple,
+        growth_pct: clamp(p.change_7d ?? 0, -60, 120),
+        growth_multiplier: round4(growthMult(p.change_7d)),
+        maturity_multiplier: round4(maturityMult(age)),
+        age_days: age,
       },
-      farm: farmPlan(p, p.category),
+      farm_steps: plan.steps,
     };
   });
-  rows.sort((a, b) => b.implied_usd - a.implied_usd || (a.slug < b.slug ? -1 : a.slug > b.slug ? 1 : 0));
+  rows.sort((a, b) => b.implied_value_usd - a.implied_value_usd || (a.slug < b.slug ? -1 : a.slug > b.slug ? 1 : 0));
   rows.forEach((row, i) => {
     row.rank = i + 1;
   });
@@ -374,5 +406,5 @@ export function buildBoard(snapshot: Snapshot): Board {
       ratio: round4(clamp((p.mcap_usd as number) / p.tvl_usd, WINSOR_LO, WINSOR_HI)),
     }))
     .sort((a, b) => b.tvl_usd - a.tvl_usd || (a.slug < b.slug ? -1 : a.slug > b.slug ? 1 : 0));
-  return { rows, live, pricing };
+  return { rows, live, pricing, details };
 }

@@ -34,22 +34,15 @@ function main(): void {
 
   mkdirSync(outDir, { recursive: true });
 
-  // board.json: the ranked board on its own, with the model constants that
-  // produced it, so a reader can recompute every implied value from the
-  // printed inputs alone.
-  const boardDoc = {
-    model: MODEL_VERSION,
-    as_of: snapshot.as_of,
-    floor_usd: snapshot.floor_usd,
-    global_multiple: board.pricing.global_multiple,
-    category_multiples: Object.fromEntries(
-      [...board.pricing.by_category.entries()]
-        .sort(([a], [b]) => (a < b ? -1 : a > b ? 1 : 0))
-        .map(([category, price]) => [category, price]),
-    ),
-    rows: board.rows,
-  };
-  writeFileSync(join(outDir, 'board.json'), `${JSON.stringify(boardDoc, null, 2)}\n`);
+  // board.json: the ranked board on its own, in the gate's row schema. The
+  // model constants travel in data.js, beside the page that renders them.
+  writeFileSync(join(outDir, 'board.json'), `${JSON.stringify({ rows: board.rows }, null, 2)}\n`);
+
+  const categoryMultiples = Object.fromEntries(
+    [...board.pricing.by_category.entries()]
+      .sort(([a], [b]) => (a < b ? -1 : a > b ? 1 : 0))
+      .map(([category, price]) => [category, price]),
+  );
 
   // data.js: everything the dashboard renders, as one window global. The
   // page recomputes each row's implied value from the row's own printed
@@ -61,28 +54,31 @@ function main(): void {
       global_multiple: board.pricing.global_multiple,
       comps_total: board.pricing.comps_total,
       categories_with_comps: board.pricing.categories_with_comps,
-      category_multiples: boardDoc.category_multiples,
+      category_multiples: categoryMultiples,
     },
     as_of: snapshot.as_of,
     floor_usd: snapshot.floor_usd,
     source: snapshot.source,
-    rows: board.rows.map((row) => ({
-      rank: row.rank,
-      slug: row.slug,
-      name: row.name,
-      category: row.category,
-      chains: row.chains,
-      tvl_usd: row.tvl_usd,
-      change_7d: row.change_7d,
-      age_days: row.age_days,
-      watchlist: row.watchlist,
-      category_multiple: row.model.category_multiple,
-      comps: row.model.comps,
-      growth_mult: row.model.growth_mult,
-      maturity_mult: row.model.maturity_mult,
-      implied_usd: row.implied_usd,
-      farm: row.farm,
-    })),
+    rows: board.rows.map((row) => {
+      const detail = board.details.get(row.slug)!;
+      return {
+        rank: row.rank,
+        slug: row.slug,
+        name: row.name,
+        category: row.category,
+        chains: row.chains,
+        tvl_usd: row.tvl_usd,
+        change_7d: row.change_7d,
+        age_days: row.age_days,
+        watchlist: detail.watchlist,
+        category_multiple: row.model.base_multiple,
+        comps: detail.comps,
+        growth_mult: detail.growth_mult,
+        maturity_mult: detail.maturity_mult,
+        implied_usd: row.implied_value_usd,
+        farm: { capital_usd: detail.capital_usd, hold_days: detail.hold_days, steps: row.farm_steps },
+      };
+    }),
     live: board.live,
   };
   writeFileSync(join(outDir, 'data.js'), `window.RADAR_DATA = ${JSON.stringify(radarData, null, 2)};\n`);
@@ -96,9 +92,10 @@ function main(): void {
   const dossier = buildDossier(outDir, { text_max_bytes: 65536 });
   writeFileSync(join(outDir, 'dossier.json'), dossier);
 
+  const watchCount = [...board.details.values()].filter((d) => d.watchlist).length;
   console.log(
-    `radar-2: ${board.rows.length} rows (${board.rows.filter((r) => r.watchlist).length} watchlist, ` +
-      `${board.rows.length - board.rows.filter((r) => r.watchlist).length} early), ` +
+    `radar-2: ${board.rows.length} rows (${watchCount} watchlist, ` +
+      `${board.rows.length - watchCount} early), ` +
       `${board.live.length} live set aside, global multiple ${board.pricing.global_multiple}`,
   );
 }

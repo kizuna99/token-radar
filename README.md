@@ -14,6 +14,10 @@ The category multiple is *measured*, not asserted: for every category it is the 
 
 The board carries all 40 watchlist protocols plus every clean pre-token protocol below the floor — **178 rows** on the frozen snapshot, implied values from $780K to $1.04B (Steakhouse Financial on top). Every row ships a 6-step farm plan whose third step is a category-specific weekly action. After a run, open the generated `dashboard/index.html` to explore the board: detail views (`#p=<slug>`) recompute each implied value from the row's printed inputs, and the category filter (`#category=<name>`) slices the board — page and board agree exactly.
 
+## Evidence and limits
+
+The model is back-tested, not just asserted. `validateModel` in `lib/model.ts` prices each of the snapshot's 92 live protocols as if it were still pre-token — its category multiple re-measured without it (leave-one-out), its market cap predicted from TVL alone — and scores the prediction against the market cap it actually trades at. The honest result: the median prediction is off by 5.25×, 25% of predictions land within 2× and 37% within 3×, and a flat all-category multiple scores the same within noise (rank correlation 0.34 vs this model's 0.33). On a single snapshot, category pricing cannot be shown to beat TVL alone; the category model is kept because a lending protocol and a perps protocol with equal TVL do not launch alike, so each sector's measured multiple is the honest prior for its own protocols. Read the ranking as a screening order with that spread attached to every number, and the farm plans as sized to survive being wrong by that much. The dashboard carries the same evidence panel, the board's sha256 for byte-level reproduction, and these limits in full.
+
 Layout: `main.ts` is the entrypoint, `lib/model.ts` is the model, `dashboard/` is the static board UI, `vendor/` is make.fun's own dossier library, `screenshots/` shows the board, a detail view, and a filtered view.
 
 ## Run it

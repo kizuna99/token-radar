@@ -135,6 +135,43 @@ function render(data) {
     '<span class="chip">' + m.comps_total + ' live comps</span>' +
     '<span class="chip">' + m.categories_with_comps + ' categories priced</span>';
 
+  var v = data.validation;
+  document.getElementById('validation-text').textContent =
+    'The multiples above are tested, not just asserted. Each of the ' + v.comps + ' live ' +
+    'protocols in this snapshot is priced as if it were still pre-token: its category ' +
+    'multiple is re-measured without it (leave-one-out), its market cap is predicted from ' +
+    'TVL alone, and the prediction is scored against the market cap it actually trades at. ' +
+    'The result is a wide band, stated plainly: the median prediction is off by ' +
+    v.median_fold_error.toFixed(2) + '\u00d7; ' + v.within_2x_pct + '% of predictions land ' +
+    'within 2\u00d7 and ' + v.within_3x_pct + '% within 3\u00d7. A flat all-category multiple ' +
+    'scores the same within noise (median ' + v.baseline_median_fold_error.toFixed(2) +
+    '\u00d7; rank correlation ' + v.baseline_rank_correlation.toFixed(2) + ' against this ' +
+    'model\u2019s ' + v.rank_correlation.toFixed(2) + ') — on a single snapshot, category ' +
+    'pricing cannot be shown to beat TVL alone, and this page does not pretend otherwise. ' +
+    'The category model is kept because a lending protocol and a perps protocol with equal ' +
+    'TVL do not launch alike, so each sector\u2019s measured multiple is the honest prior ' +
+    'for its own protocols. Read the ranking as a screening order with the spread above ' +
+    'attached to every number on it.';
+  document.getElementById('validation-chips').innerHTML =
+    '<span class="chip">leave-one-out \u00b7 ' + v.comps + ' live protocols</span>' +
+    '<span class="chip">median error ' + v.median_fold_error.toFixed(2) + '\u00d7</span>' +
+    '<span class="chip">' + v.within_2x_pct + '% within 2\u00d7</span>' +
+    '<span class="chip">rank correlation ' + v.rank_correlation.toFixed(2) + '</span>';
+
+  document.getElementById('repro-text').textContent =
+    'Reproduce it: this board is a pure function of the sealed snapshot. Rebuilding with ' +
+    'node main.ts --input snapshot.json (Node 22, standard library only, no network, no ' +
+    'clock) yields board.json byte for byte — sha256 ' + data.board_sha256 + '. This page ' +
+    'goes further and re-derives every implied value and farm plan from the printed row ' +
+    'inputs in your browser, flagging any row that disagrees with the board.';
+  document.getElementById('limits-text').textContent =
+    'Limits, stated plainly: the snapshot is one moment (' + data.as_of + ') and TVL moves. ' +
+    'A category multiple is the median of what similar tokens trade at today, not a promise ' +
+    'about any single launch — individual launches land far above and below it, as the ' +
+    'back-test spread shows. The snapshot carries no token supply, unlock schedule, team or ' +
+    'audit data, so the model uses none: it ranks where a launch would plausibly price if it ' +
+    'prices like its category, and the farm plans are sized to survive being wrong.';
+
   var cats = [];
   rows.forEach(function (r) { if (cats.indexOf(r.category) < 0) cats.push(r.category); });
   cats.sort();

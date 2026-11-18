@@ -279,6 +279,118 @@ export function farmPlan(p: Protocol, category: string): { capital_usd: number; 
   return { capital_usd: capital, hold_days: hold, steps };
 }
 
+// -------------------------------------------------------------- validation
+
+/** How the measured multiples perform when they are tested, not asserted. */
+export interface Validation {
+  /** Live protocols the test ran over (the same set that feeds pricing). */
+  comps: number;
+  /** Median fold error of the category model: half of all leave-one-out
+   * predictions land within this factor of the real market cap. */
+  median_fold_error: number;
+  /** Share of predictions within 2x of the real market cap, percent. */
+  within_2x_pct: number;
+  /** Share of predictions within 3x of the real market cap, percent. */
+  within_3x_pct: number;
+  /** The same two numbers for a flat all-category multiple, as a baseline. */
+  baseline_median_fold_error: number;
+  baseline_within_2x_pct: number;
+  /** Spearman rank correlation between predicted and actual market caps:
+   * the radar is a ranking, so this is the number that grades its order. */
+  rank_correlation: number;
+  baseline_rank_correlation: number;
+}
+
+const round3 = (x: number): number => Math.round(x * 1000) / 1000;
+const round1 = (x: number): number => Math.round(x * 10) / 10;
+
+/**
+ * Leave-one-out back-test of the pricing model on the snapshot's own live
+ * protocols. For each live comp, the category multiple is re-measured
+ * without that comp (the global median is re-measured too), the comp's
+ * market cap is predicted from its TVL alone, and the prediction is scored
+ * against the market cap it actually trades at. A flat global multiple is
+ * scored the same way as the baseline the category model has to beat.
+ */
+export function validateModel(protocols: Protocol[]): Validation {
+  const comps: { category: string; tvl: number; mcap: number; ratio: number }[] = [];
+  const ratiosByCategory = new Map<string, number[]>();
+  const allRatios: number[] = [];
+  for (const p of protocols) {
+    if (isPreToken(p) || isDerivative(p)) continue;
+    if (p.mcap_usd === null || p.mcap_usd <= 0 || p.tvl_usd <= 0) continue;
+    const ratio = clamp(p.mcap_usd / p.tvl_usd, WINSOR_LO, WINSOR_HI);
+    comps.push({ category: p.category, tvl: p.tvl_usd, mcap: p.mcap_usd, ratio });
+    allRatios.push(ratio);
+    const list = ratiosByCategory.get(p.category);
+    if (list) list.push(ratio);
+    else ratiosByCategory.set(p.category, [ratio]);
+  }
+  const folds: number[] = [];
+  const baselineFolds: number[] = [];
+  const predictedCaps: number[] = [];
+  const baselineCaps: number[] = [];
+  const actualCaps: number[] = [];
+  for (const comp of comps) {
+    const looAll = [...allRatios];
+    looAll.splice(looAll.indexOf(comp.ratio), 1);
+    const looGlobal = median(looAll);
+    const looCat = [...(ratiosByCategory.get(comp.category) ?? [])];
+    looCat.splice(looCat.indexOf(comp.ratio), 1);
+    const multiple =
+      looCat.length > 0
+        ? clamp((looCat.length * median(looCat) + SHRINK_K * looGlobal) / (looCat.length + SHRINK_K), MULT_LO, MULT_HI)
+        : looGlobal;
+    const predicted = comp.tvl * multiple;
+    folds.push(Math.max(predicted / comp.mcap, comp.mcap / predicted));
+    const baseline = comp.tvl * looGlobal;
+    baselineFolds.push(Math.max(baseline / comp.mcap, comp.mcap / baseline));
+    predictedCaps.push(predicted);
+    baselineCaps.push(baseline);
+    actualCaps.push(comp.mcap);
+  }
+  const within = (xs: number[], cap: number): number => (xs.filter((x) => x <= cap).length / xs.length) * 100;
+  return {
+    comps: comps.length,
+    median_fold_error: round3(median(folds)),
+    within_2x_pct: round1(within(folds, 2)),
+    within_3x_pct: round1(within(folds, 3)),
+    baseline_median_fold_error: round3(median(baselineFolds)),
+    baseline_within_2x_pct: round1(within(baselineFolds, 2)),
+    rank_correlation: round3(spearman(predictedCaps, actualCaps)),
+    baseline_rank_correlation: round3(spearman(baselineCaps, actualCaps)),
+  };
+}
+
+/** Spearman rank correlation: average ranks for ties, Pearson on the ranks. */
+function spearman(xs: number[], ys: number[]): number {
+  const ranks = (vs: number[]): number[] => {
+    const order = vs.map((v, i) => [v, i] as const).sort((a, b) => a[0] - b[0]);
+    const out = new Array<number>(vs.length);
+    for (let i = 0; i < order.length; ) {
+      let j = i;
+      while (j + 1 < order.length && order[j + 1]![0] === order[i]![0]) j++;
+      const avg = (i + j) / 2 + 1;
+      for (let k = i; k <= j; k++) out[order[k]![1]] = avg;
+      i = j + 1;
+    }
+    return out;
+  };
+  const rx = ranks(xs);
+  const ry = ranks(ys);
+  const mx = rx.reduce((a, b) => a + b, 0) / rx.length;
+  const my = ry.reduce((a, b) => a + b, 0) / ry.length;
+  let cov = 0;
+  let vx = 0;
+  let vy = 0;
+  for (let i = 0; i < rx.length; i++) {
+    cov += (rx[i]! - mx) * (ry[i]! - my);
+    vx += (rx[i]! - mx) ** 2;
+    vy += (ry[i]! - my) ** 2;
+  }
+  return vx > 0 && vy > 0 ? cov / Math.sqrt(vx * vy) : 0;
+}
+
 // ------------------------------------------------------------------- board
 
 /** One row of the ranked board (board.json) and of the dashboard data. */

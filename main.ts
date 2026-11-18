@@ -13,11 +13,12 @@
 // Output: $MAKEFUN_OUTPUT_DIR, default /output
 // No network, no clock, no randomness: two runs agree byte for byte.
 
+import { createHash } from 'node:crypto';
 import { cpSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { buildDossier } from './vendor/makefun-board.ts';
-import { buildBoard, MODEL_VERSION, type Snapshot } from './lib/model.ts';
+import { buildBoard, MODEL_VERSION, validateModel, type Snapshot } from './lib/model.ts';
 
 const root = dirname(fileURLToPath(import.meta.url));
 
@@ -36,7 +37,13 @@ function main(): void {
 
   // board.json: the ranked board on its own, in the gate's row schema. The
   // model constants travel in data.js, beside the page that renders them.
-  writeFileSync(join(outDir, 'board.json'), `${JSON.stringify({ rows: board.rows }, null, 2)}\n`);
+  const boardJson = `${JSON.stringify({ rows: board.rows }, null, 2)}\n`;
+  writeFileSync(join(outDir, 'board.json'), boardJson);
+  const boardSha256 = createHash('sha256').update(boardJson).digest('hex');
+
+  // The pricing model, back-tested leave-one-out on the snapshot's own live
+  // protocols: evidence for the page, computed by the same pure code path.
+  const validation = validateModel(snapshot.protocols);
 
   const categoryMultiples = Object.fromEntries(
     [...board.pricing.by_category.entries()]
@@ -59,6 +66,8 @@ function main(): void {
     as_of: snapshot.as_of,
     floor_usd: snapshot.floor_usd,
     source: snapshot.source,
+    board_sha256: boardSha256,
+    validation,
     rows: board.rows.map((row) => {
       const detail = board.details.get(row.slug)!;
       return {
@@ -98,6 +107,13 @@ function main(): void {
       `${board.rows.length - watchCount} early), ` +
       `${board.live.length} live set aside, global multiple ${board.pricing.global_multiple}`,
   );
+  console.log(
+    `validation (leave-one-out, ${validation.comps} live comps): median fold error ` +
+      `${validation.median_fold_error}x, ${validation.within_2x_pct}% within 2x, ` +
+      `${validation.within_3x_pct}% within 3x; flat-multiple baseline ` +
+      `${validation.baseline_median_fold_error}x, ${validation.baseline_within_2x_pct}% within 2x`,
+  );
+  console.log(`board.json sha256 ${boardSha256}`);
 }
 
 main();

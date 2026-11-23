@@ -1,108 +1,51 @@
-/* Token Launch Radar — page styles. One file, no external assets. */
-
 :root {
-  --ink: #17203a;
-  --muted: #5b657d;
-  --paper: #f6f4ee;
-  --card: #fffdf8;
-  --line: #ddd5c3;
-  --accent: #0c6b4f;
-  --accent-soft: #e2efe8;
-  --warn: #a33b2e;
+  --ink: #17203a; --mut: #5b6478; --line: #d8dce6; --bg: #f6f4ee; --card: #fffdf8;
+  --farm: #177245; --thin: #a86a00; --skip: #9a3412; --accent: #274690;
 }
-
 * { box-sizing: border-box; }
-
-body {
-  margin: 0 auto;
-  max-width: 1080px;
-  padding: 28px 20px 48px;
-  background: var(--paper);
-  color: var(--ink);
-  font: 15px/1.55 -apple-system, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
-}
-
-.masthead .kicker {
-  margin: 0;
-  text-transform: uppercase;
-  letter-spacing: 0.14em;
-  font-size: 12px;
-  color: var(--accent);
-  font-weight: 700;
-}
-
-h1 { margin: 4px 0 8px; font-size: 34px; line-height: 1.15; }
-h2 { font-size: 20px; margin: 0 0 8px; }
-h3 { font-size: 15px; margin: 0 0 8px; }
-
-.lede { color: var(--muted); max-width: 72ch; margin: 0; }
-
-.panel {
-  background: var(--card);
-  border: 1px solid var(--line);
-  border-radius: 10px;
-  padding: 16px 18px;
-  margin: 20px 0;
-}
-
-.chips { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 10px; }
-.chip {
-  background: var(--accent-soft);
-  border-radius: 999px;
-  padding: 3px 10px;
-  font-size: 13px;
-  font-variant-numeric: tabular-nums;
-}
-
-.views {
-  display: flex;
-  align-items: center;
-  gap: 18px;
-  margin: 18px 0 10px;
-  border-bottom: 2px solid var(--line);
-  padding-bottom: 8px;
-}
-.views a { color: var(--accent); font-weight: 600; text-decoration: none; }
-.views a.active { color: var(--ink); text-decoration: underline; }
-.filter { margin-left: auto; color: var(--muted); font-size: 14px; }
-.filter select { margin-left: 6px; padding: 4px 6px; font-size: 14px; }
-
-table { width: 100%; border-collapse: collapse; background: var(--card); }
-th, td {
-  padding: 7px 10px;
-  border-bottom: 1px solid var(--line);
-  text-align: left;
-  font-variant-numeric: tabular-nums;
-}
-th { font-size: 12px; text-transform: uppercase; letter-spacing: 0.06em; color: var(--muted); }
-td.num, th.num { text-align: right; }
-tbody tr:hover { background: var(--accent-soft); }
-td a { color: var(--ink); font-weight: 600; text-decoration: none; }
-td a:hover { color: var(--accent); text-decoration: underline; }
-.tag {
-  font-size: 11px;
-  background: var(--accent);
-  color: #fff;
-  border-radius: 4px;
-  padding: 1px 5px;
-  margin-left: 6px;
-  vertical-align: 2px;
-}
-.pos { color: var(--accent); }
-.neg { color: var(--warn); }
-
-.note { color: var(--muted); font-size: 13.5px; }
-
-.detail-sub { color: var(--muted); margin-top: -4px; }
-.detail-grid { display: grid; grid-template-columns: 1fr 1.4fr; gap: 18px; }
-@media (max-width: 760px) { .detail-grid { grid-template-columns: 1fr; } }
-.detail-grid .panel { margin: 0; }
-dl { margin: 0; }
-dl div { display: flex; justify-content: space-between; padding: 4px 0; border-bottom: 1px dashed var(--line); }
-dt { color: var(--muted); }
-dd { margin: 0; font-weight: 600; font-variant-numeric: tabular-nums; }
-#farm-steps { margin: 8px 0 0; padding-left: 20px; }
-#farm-steps li { margin-bottom: 8px; }
-.stale { color: var(--warn); font-weight: 700; }
-
-footer { margin-top: 28px; color: var(--muted); font-size: 13px; }
+body { margin: 0 auto; max-width: 1180px; padding: 28px 22px 40px; background: var(--bg);
+  color: var(--ink); font: 15px/1.5 Georgia, 'Times New Roman', serif; }
+h1 { font-size: 34px; margin: 0 0 4px; letter-spacing: .2px; }
+h1 .ver { color: var(--accent); font-size: 20px; }
+h2 { font-size: 19px; margin: 0 0 8px; }
+.sub { color: var(--mut); margin: 0 0 8px; font-style: italic; }
+.claim { max-width: 860px; margin: 0 0 14px; }
+.strip { display: flex; flex-wrap: wrap; gap: 8px; margin: 10px 0 16px; }
+.chip { background: var(--card); border: 1px solid var(--line); border-radius: 999px;
+  padding: 4px 12px; font-size: 13px; }
+.chip b { color: var(--farm); }
+.panel { background: var(--card); border: 1px solid var(--line); border-radius: 10px;
+  padding: 14px 18px; margin: 0 0 16px; }
+.panel p { margin: 6px 0; }
+table { border-collapse: collapse; width: 100%; font-size: 13.5px; }
+th, td { border-bottom: 1px solid var(--line); padding: 5px 8px; text-align: right; }
+th { color: var(--mut); font-weight: normal; border-bottom: 2px solid var(--ink); }
+td.l, th.l { text-align: left; }
+table.board td { vertical-align: top; }
+table.board tr.row { cursor: pointer; }
+table.board tr.row:hover { background: #f0ead8; }
+.num { font-variant-numeric: tabular-nums; }
+.vFARM { color: var(--farm); font-weight: bold; }
+.vTHIN { color: var(--thin); font-weight: bold; }
+.vSKIP { color: var(--skip); font-weight: bold; }
+.wl { color: var(--accent); font-size: 11px; border: 1px solid var(--accent);
+  border-radius: 4px; padding: 0 4px; margin-left: 6px; }
+#controls { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; margin: 4px 0 10px; }
+#controls input[type=search], #controls select { font: 14px Georgia, serif; padding: 5px 8px;
+  border: 1px solid var(--line); border-radius: 6px; background: var(--card); }
+.chk { font-size: 14px; }
+#shown { color: var(--mut); font-size: 13px; }
+.eq { font-family: 'Courier New', monospace; font-size: 13.5px; background: #f0ead8;
+  border-radius: 6px; padding: 8px 12px; overflow-x: auto; white-space: nowrap; }
+.grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 6px 26px; }
+.kv { display: flex; justify-content: space-between; gap: 14px; border-bottom: 1px dotted var(--line); padding: 3px 0; }
+.kv span:first-child { color: var(--mut); flex: 0 0 auto; }
+.kv b { text-align: right; }
+ol.steps li { margin: 5px 0; }
+.ledger { max-height: 260px; overflow-y: auto; font-size: 12.5px; columns: 2; }
+.ledger div { break-inside: avoid; padding: 1px 0; }
+.ledger .b-ranked { color: var(--farm); } .ledger .b-derivative { color: var(--skip); }
+.ledger .b-token { color: var(--mut); }
+footer { color: var(--mut); font-size: 13px; margin-top: 18px; }
+button.back { font: 14px Georgia, serif; background: none; border: 1px solid var(--line);
+  border-radius: 6px; padding: 4px 10px; cursor: pointer; }

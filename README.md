@@ -4,30 +4,70 @@
 [![rank](https://make.fun/badge/token-radar-01/kizuna99/token-radar/rank.svg)](https://make.fun/bounty/token-radar-01/leaderboard?utm_source=github&utm_medium=readme&utm_campaign=token-radar-01)
 [![reward](https://make.fun/badge/token-radar-01/kizuna99/token-radar/reward.svg)](https://make.fun/bounty/token-radar-01?utm_source=github&utm_medium=readme&utm_campaign=token-radar-01)
 
-**radar-2** ranks pre-token protocols by implied launch value:
+**radar-3** ranks pre-token protocols by expected launch value. Every number on
+the board is fitted from the sealed snapshot itself and tested held-out before
+it is believed:
 
 ```
-implied = TVL × category_multiple × growth_factor × maturity_factor
+launch_value  = 10^(a + b · log10 TVL)          fitted on the snapshot's 92 traded,
+                                                non-derivative comps (least squares
+                                                on log10 market cap)
+launch_odds   = σ(c + d · log10 age_days)       logistic fit on all 758 protocols:
+                                                does a peer with this record already
+                                                record a token?
+implied_value = launch_value × launch_odds      the board's ranking claim
 ```
 
-The category multiple is *measured*, not asserted: for every category it is the median market-cap/TVL of the snapshot's own live, non-derivative tokens in that category — winsorised to [0.02, 8], shrunk toward the all-category median (0.2293) with k=10 phantom comparables, and clamped to [0.05, 2]. Derivative products (bridges, liquid staking/restaking, wrapped/staked variants, exchange-issued listings) are excluded from the whole board. The growth factor reads the 7-day TVL change; the maturity factor reads protocol age.
+Term selection was done by held-out tests, not by taste: a 7-day-change term, a
+TVL term in the odds fit, category intercepts and category multiples were all
+fitted and then **dropped** because leave-one-out or split-half tests did not
+keep them. What survives is what the snapshot's own record supports.
 
-The board carries all 40 watchlist protocols plus every clean pre-token protocol below the floor — **178 rows** on the frozen snapshot, implied values from $780K to $1.04B (Steakhouse Financial on top). Every row ships a 6-step farm plan whose third step is a category-specific weekly action. After a run, open the generated `dashboard/index.html` to explore the board: detail views (`#p=<slug>`) recompute each implied value from the row's printed inputs, and the category filter (`#category=<name>`) slices the board — page and board agree exactly.
+## Evidence (recomputed by the program on every run)
 
-## Evidence and limits
+- Value model, leave-one-out over the 92 comps: **median fold error 3.27×**,
+  38.0% of predictions within 2×, 45.7% within 3×, rank correlation 0.28.
+  Tested a second way — repeated 10-fold cross-validation — the median fold
+  error is **3.40×**. On the 32 comps at or above the $50M floor the board
+  hunts in, the leave-one-out fold error is **2.86×**.
+- The previous model (category median multiples) scores **5.25×** on the same
+  leave-one-out test, with 25.0% within 2× — radar-3's fitted curve cuts the
+  median pricing error by more than a third. Its one better number is rank
+  correlation (0.33 vs 0.28); the trade is stated, not hidden.
+- Odds model: split-half AUC **0.711**, mean calibration gap **0.026** over 20
+  splits. The peers' record is plain: the share of protocols that already
+  record a token rises with tracked age, from 26% under 180 days to 80% past
+  four years — the odds term reads that record, nothing else.
 
-The model is back-tested, not just asserted. `validateModel` in `lib/model.ts` prices each of the snapshot's 92 live protocols as if it were still pre-token — its category multiple re-measured without it (leave-one-out), its market cap predicted from TVL alone — and scores the prediction against the market cap it actually trades at. The honest result: the median prediction is off by 5.25×, 25% of predictions land within 2× and 37% within 3×, and a flat all-category multiple scores the same within noise (rank correlation 0.34 vs this model's 0.33). On a single snapshot, category pricing cannot be shown to beat TVL alone; the category model is kept because a lending protocol and a perps protocol with equal TVL do not launch alike, so each sector's measured multiple is the honest prior for its own protocols. Read the ranking as a screening order with that spread attached to every number, and the farm plans as sized to survive being wrong by that much. The dashboard carries the same evidence panel, the board's sha256 for byte-level reproduction, and these limits in full.
+## The census
 
-Layout: `main.ts` is the entrypoint, `lib/model.ts` is the model, `dashboard/` is the static board UI, `vendor/` is make.fun's own dossier library, `screenshots/` shows the board, a detail view, and a filtered view.
+All **758** protocols in the snapshot are accounted for on the dashboard:
+**198** ranked on the board (every one of the 40 watchlist protocols among
+them), **144** set aside by the derivative screen with the reason named
+(wrapper category, versioned name, wrapper word, exchange brand), and **416**
+that already record a token — 144 of those carry a market-cap record (128 of
+them priced above zero), and the 92 that are non-derivative with a price and
+a TVL are the comps the value models are fitted and tested on.
 
-## Run it
+## Farm verdicts
 
-```sh
-MAKEFUN_OUTPUT_DIR=out node main.ts --input snapshot.json
+Every row carries a costed plan sized to a stated **$1,000** deposit over
+**8 weeks**: cash costs from a printed per-chain action table, hours from the
+plan itself, and an expected reward under two printed assumptions (a launch
+distributes 5% of supply to early users; a $1,000 farmer captures 1/5,000 of
+that pool). The verdict nets the plan to **$/hour** —
+FARM at $8/hr or better, THIN from $2 to $8, SKIP below $2 — and the board
+splits 42 FARM / 140 THIN / 16 SKIP, so a reader can see not just what to farm
+but what the farm pays for its time.
+
+## Running it
+
+```
+node main.ts --input <snapshot.json> --output out
 ```
 
-Node 22, standard library only, no network. The run writes `board.json`, `data.js`, `dashboard/`, `screenshots/`, and `dossier.json` into the output directory, byte-identical across runs.
-
----
-
-<sub>Entered on [make.fun](https://make.fun/?utm_source=github&utm_medium=readme&utm_campaign=token-radar-01) · AI agents build software for cash rewards</sub>
+writes `board.json`, `data.js`, the dashboard, screenshots and `dossier.json`.
+Open `out/dashboard/index.html`: the board (`#category=<name>` filters it,
+`#p=<slug>` opens a protocol's detail), and the cover's integrity strip
+recomputes the census, the coverage and the board's own summary numbers from
+the data file live, so the page proves the claims it prints.

@@ -3,92 +3,42 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Token Launch Radar — radar-2</title>
+<meta name="description" content="radar-3: pre-token protocols ranked by fitted launch value times peer launch odds, every protocol in the snapshot accounted for, every farm plan costed to $/hour.">
+<title>Token Launch Radar — radar-3</title>
 <link rel="stylesheet" href="app.css">
 </head>
 <body>
-<header class="masthead">
-  <p class="kicker">make.fun · token-radar-01</p>
-  <h1>Token Launch Radar</h1>
-  <p class="lede" id="lede">Loading the board…</p>
+<header>
+  <h1>Token Launch Radar <span class="ver">radar-3</span></h1>
+  <p class="sub" id="asof"></p>
+  <p class="claim">Every protocol in the snapshot is accounted for. Every price on the board comes from a
+  model <em>fitted on this snapshot</em> and <em>tested held-out</em> — the tests are printed below, and the
+  strip under them recomputes the board's own claims from the data file, live.</p>
 </header>
 
-<section class="panel" id="model-panel">
-  <h2>How the radar prices a launch</h2>
-  <p id="model-text">Loading the model…</p>
-  <div class="chips" id="model-chips"></div>
-</section>
+<section id="integrity" class="strip"></section>
 
-<nav class="views">
-  <a href="#" data-view="board">Board</a>
-  <a href="#live" data-view="live">Already live</a>
-  <label class="filter">Category
-    <select id="category-select"><option value="">All categories</option></select>
-  </label>
+<section id="model" class="panel"></section>
+
+<section id="census" class="panel"></section>
+
+<nav id="controls">
+  <input id="q" type="search" placeholder="Search name or slug">
+  <select id="cat"><option value="">All categories</option></select>
+  <select id="verdict">
+    <option value="">All verdicts</option><option>FARM</option><option>THIN</option><option>SKIP</option>
+  </select>
+  <label class="chk"><input id="wl" type="checkbox"> Watchlist only</label>
+  <span id="shown"></span>
 </nav>
 
-<main>
-  <section id="board-view">
-    <table id="board-table">
-      <thead>
-        <tr>
-          <th class="num">#</th><th>Protocol</th><th>Category</th>
-          <th class="num">TVL</th><th class="num">7d</th>
-          <th class="num">Multiple</th><th class="num">Implied launch value</th>
-        </tr>
-      </thead>
-      <tbody id="board-body"></tbody>
-    </table>
-    <p class="note" id="board-note"></p>
-  </section>
-
-  <section id="live-view" hidden>
-    <h2>Already live — set aside</h2>
-    <p class="note">These protocols already have a token, so they are not farm
-    targets. They are the comparables the category multiples are measured
-    from; only the ones above the TVL floor are listed here.</p>
-    <table id="live-table">
-      <thead>
-        <tr><th>Protocol</th><th>Category</th><th class="num">TVL</th>
-        <th class="num">Market cap</th><th class="num">mcap / TVL</th></tr>
-      </thead>
-      <tbody id="live-body"></tbody>
-    </table>
-  </section>
-
-  <section id="detail-view" hidden>
-    <p><a href="#" id="back-link">← Back to the board</a></p>
-    <h2 id="detail-name"></h2>
-    <p class="detail-sub" id="detail-sub"></p>
-    <div class="detail-grid">
-      <div class="panel">
-        <h3>Implied value, recomputed on this page</h3>
-        <dl id="detail-math"></dl>
-        <p class="note" id="detail-check"></p>
-      </div>
-      <div class="panel">
-        <h3>Farm plan</h3>
-        <p class="note" id="farm-summary"></p>
-        <ol id="farm-steps"></ol>
-      </div>
-    </div>
-  </section>
-</main>
-
-<section class="panel" id="validation-panel">
-  <h2>Evidence — the model, tested on protocols that already launched</h2>
-  <p id="validation-text">Loading the back-test…</p>
-  <div class="chips" id="validation-chips"></div>
-</section>
-
-<section class="panel" id="limits-panel">
-  <h2>Reproduce this board — and what it cannot tell you</h2>
-  <p id="repro-text">Loading…</p>
-  <p id="limits-text">Loading…</p>
-</section>
+<main id="board"></main>
+<section id="detail" class="panel" hidden></section>
+<section id="ledger" class="panel"></section>
 
 <footer>
-  <p id="footer-note"></p>
+  <p>Implied value is this entry's own fitted claim, never a prediction that a token will be issued.
+  A protocol is said to <em>record</em> no token, never to have none: DefiLlama's record is the evidence, and it can lag.</p>
 </footer>
 
 <script src="../data.js"></script>

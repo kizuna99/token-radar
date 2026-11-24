@@ -35,7 +35,7 @@ table.board tr.row:hover { background: #f0ead8; }
   border: 1px solid var(--line); border-radius: 6px; background: var(--card); }
 .chk { font-size: 14px; }
 #shown { color: var(--mut); font-size: 13px; }
-.eq { font-family: 'Courier New', monospace; font-size: 13.5px; background: #f0ead8;
+.eq { font-family: 'Courier New', monospace; font-size: 13px; background: #f0ead8;
   border-radius: 6px; padding: 8px 12px; overflow-x: auto; white-space: nowrap; }
 .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 6px 26px; }
 .kv { display: flex; justify-content: space-between; gap: 14px; border-bottom: 1px dotted var(--line); padding: 3px 0; }

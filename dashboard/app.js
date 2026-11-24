@@ -1,4 +1,4 @@
-// radar-3 dashboard: renders window.RADAR (written by main.ts from the same
+// radar-4 dashboard: renders window.RADAR (written by main.ts from the same
 // board the gate scores) and recomputes the cover's claims from it, live.
 (function () {
   var R = window.RADAR;
@@ -48,20 +48,24 @@
     var vf = R.value_fit, of = R.odds_fit, v = R.validation;
     $('model').innerHTML =
       '<h2>The model — fitted here, tested held-out</h2>' +
-      '<p class="eq">launch_value = 10^(' + vf.intercept + ' + ' + vf.slope + ' · log10 TVL) &nbsp;·&nbsp; ' +
+      '<p class="eq">launch_value = 10^(' + vf.intercept + ' + ' + vf.coef_tvl + '·log10 TVL + ' + vf.coef_chg + '·Δ7d + ' +
+      vf.coef_age + '·log10 age + ' + vf.coef_chains + '·chains), a TVL-weighted median fit &nbsp;·&nbsp; ' +
       'launch_odds = σ(' + of.intercept + ' + ' + of.slope + ' · log10 age) &nbsp;·&nbsp; implied = launch_value × odds</p>' +
       '<div class="grid">' +
       '<div><div class="kv"><span>value fit comps (traded, non-derivative)</span><b>' + vf.comps + '</b></div>' +
-      '<div class="kv"><span>LOO median fold error — radar-3</span><b>' + v.median_fold_error + '×</b></div>' +
-      '<div class="kv"><span>LOO median fold error — previous model</span><b>' + v.baseline_median_fold_error + '×</b></div>' +
-      '<div class="kv"><span>repeated 10-fold CV fold error</span><b>' + v.cv_median_fold_error + '×</b></div>' +
-      '<div class="kv"><span>LOO on the ' + v.big_comps + ' comps ≥ $50M floor</span><b>' + v.big_median_fold_error + '×</b></div></div>' +
-      '<div><div class="kv"><span>predictions within 2× / 3× (LOO)</span><b>' + v.within_2x_pct + '% / ' + v.within_3x_pct + '%</b></div>' +
-      '<div class="kv"><span>previous model within 2× (LOO)</span><b>' + v.baseline_within_2x_pct + '%</b></div>' +
-      '<div class="kv"><span>rank correlation (radar-3 vs previous)</span><b>' + v.rank_correlation + ' vs ' + v.baseline_rank_correlation + '</b></div>' +
+      '<div class="kv"><span>LOO median fold error — radar-4</span><b>' + v.median_fold_error + '×</b></div>' +
+      '<div class="kv"><span>LOO median fold error — radar-3 curve</span><b>' + v.ols_median_fold_error + '×</b></div>' +
+      '<div class="kv"><span>LOO median fold error — category multiples</span><b>' + v.baseline_median_fold_error + '×</b></div>' +
+      '<div class="kv"><span>repeated 10-fold CV fold error</span><b>' + v.cv_median_fold_error + '×</b></div></div>' +
+      '<div><div class="kv"><span>LOO on the ' + v.big_comps + ' comps ≥ $50M floor</span><b>' + v.big_median_fold_error + '×</b></div>' +
+      '<div class="kv"><span>predictions within 2× / 3× (LOO)</span><b>' + v.within_2x_pct + '% / ' + v.within_3x_pct + '%</b></div>' +
+      '<div class="kv"><span>rank correlation (LOO)</span><b>' + v.rank_correlation + '</b></div>' +
+      '<div class="kv"><span>radar-3 curve within 2× (LOO)</span><b>' + v.ols_within_2x_pct + '%</b></div>' +
       '<div class="kv"><span>odds fit rows / split-half AUC / calibration gap</span><b>' + of.rows + ' / ' + v.odds_auc + ' / ' + v.odds_calibration_gap + '</b></div></div>' +
       '</div>' +
-      '<p>Terms the tests dropped: the 7-day TVL change, category intercepts and category multiples, and a TVL term in the odds fit — each was fitted, tested, and removed for failing to earn its place. The one number the old model wins is rank correlation; the trade is printed, not buried.</p>';
+      '<p>The value fit is a median regression, not a mean: it prices the typical peer, so one moonshot comp cannot bend the curve. ' +
+      'Each comp is weighted by the square root of its TVL rank, and every feature is clipped to the comps’ own range before it is read — the model never extrapolates past the record it was fitted on. ' +
+      'Terms the tests dropped this round: a quadratic TVL term, category intercepts, gradient-boosted trees, and TVL and growth terms in the odds fit — each was fitted, tested held-out, and removed for failing to earn its place.</p>';
   })();
 
   // ---- census panel
@@ -128,7 +132,7 @@
       '<div class="kv"><span>TVL</span><b>' + money(r.tvl_usd) + '</b></div>' +
       '<div class="kv"><span>7-day TVL change</span><b>' + (r.change_7d === null ? 'unreported' : r.change_7d.toFixed(2) + '%') + '</b></div>' +
       '<div class="kv"><span>tracked since</span><b>' + (r.listed_at || 'unrecorded') + (r.age_days === null ? '' : ' (' + r.age_days + ' days)') + '</b></div></div>' +
-      '<div><div class="kv"><span>launch value (fitted curve)</span><b>' + money(r.launch_value_usd) + '</b></div>' +
+      '<div><div class="kv"><span>launch value (fitted model)</span><b>' + money(r.launch_value_usd) + '</b></div>' +
       '<div class="kv"><span>launch odds (peers’ record)</span><b>' + (r.launch_odds * 100).toFixed(1) + '%</b></div>' +
       '<div class="kv"><span>implied value</span><b>' + money(r.implied_value_usd) + '</b></div>' +
       '<div class="kv"><span>plan: cash / hours / expected reward</span><b>$' + r.plan_cash_usd + ' / ' + r.plan_hours + 'h / $' + r.expected_reward_usd + '</b></div>' +

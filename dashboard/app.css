@@ -49,3 +49,8 @@ ol.steps li { margin: 5px 0; }
 footer { color: var(--mut); font-size: 13px; margin-top: 18px; }
 button.back { font: 14px Georgia, serif; background: none; border: 1px solid var(--line);
   border-radius: 6px; padding: 4px 10px; cursor: pointer; }
+.mstrip { display: flex; flex-wrap: wrap; gap: 10px 34px; background: var(--card);
+  border: 1px solid var(--line); border-radius: 10px; padding: 10px 18px; margin: 0 0 16px; }
+.ms span { display: block; color: var(--mut); font-size: 12px; }
+.ms b { font-size: 19px; }
+td.win { color: var(--accent); white-space: nowrap; }

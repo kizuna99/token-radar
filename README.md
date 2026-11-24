@@ -4,7 +4,11 @@
 [![rank](https://make.fun/badge/token-radar-01/kizuna99/token-radar/rank.svg)](https://make.fun/bounty/token-radar-01/leaderboard?utm_source=github&utm_medium=readme&utm_campaign=token-radar-01)
 [![reward](https://make.fun/badge/token-radar-01/kizuna99/token-radar/reward.svg)](https://make.fun/bounty/token-radar-01?utm_source=github&utm_medium=readme&utm_campaign=token-radar-01)
 
-**radar-4** ranks pre-token protocols by expected launch value. Every number
+**radar-5** ranks pre-token protocols by expected launch value — and now
+also reads each row's **launch window** off the fitted odds: the tracked age
+by which half of like peers already record a token (~525 days on this
+snapshot), reported per row as already open or as the months that remain,
+so a farm plan can be timed, not just priced. Every number
 on the board is fitted from the sealed snapshot itself and tested held-out
 before it is believed:
 
@@ -27,6 +31,16 @@ makes the big protocols — the ones the board actually prices — count for mor
 than the tail; and clipping every feature to the fitted range means the model
 never extrapolates past the record it was fitted on.
 
+The change from radar-4 is a readout, not a price. Round 2 fitted and tested
+two pricing changes and dropped both on the numbers: excluding the comps
+whose token is itself dollar-pegged or a stablecoin issuer's (leave-one-out
+3.01–3.09× on the shared comp set, against 2.98× keeping them — the pegged
+comps anchor the fit), and clipping the 7-day change symmetrically at ±30 or
+±25 (2.83–2.85×, against 2.81×). The pricing therefore stands exactly as
+radar-4 fitted it; what radar-5 adds is the launch window on every row and
+in every farm plan's timing step, plus a first screen that prints the model,
+its held-out tests and the census counts above the board.
+
 Term selection was done by held-out tests, not by taste. Fitted and then
 **dropped** this round: a quadratic TVL term, category intercepts and
 category multiples, gradient-boosted trees, a trimmed least-squares variant,
@@ -45,7 +59,7 @@ supports.
   radar-3's least-squares size curve folds at **3.27×** leave-one-out
   (2.86× on the big comps), and the category-multiples model before it at
   **5.25×**. The curve keeps one better number — 38.0% of its predictions
-  land within 2×, against radar-4's 32.6%: radar-4's median is tighter while
+  land within 2×, against radar-5's 32.6%: radar-5's median is tighter while
   its best-case band is thinner, and the trade is stated, not hidden.
 - Known limit, stated plainly: split the comps by tracked age instead of at
   random and the extra terms transfer less well than the plain size curve.
@@ -54,7 +68,10 @@ supports.
 - Odds model: split-half AUC **0.711**, mean calibration gap **0.026** over
   20 splits. The peers' record is plain: the share of protocols that already
   record a token rises with tracked age — the odds term reads that record,
-  nothing else.
+  nothing else. Solved for its 50% crossing, the curve puts the typical
+  launch window at **~525 days tracked**: of the board's 198 rows, the
+  window is already open for those past that age and months away for the
+  rest, and each row prints which.
 
 ## The census
 

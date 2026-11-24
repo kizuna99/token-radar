@@ -1,4 +1,4 @@
-// A token-radar-01 entry (Node 22, standard library only): radar-4.
+// A token-radar-01 entry (Node 22, standard library only): radar-5.
 //
 // The program reads the sealed snapshot from /input/snapshot.json (or --input <file|dir>), scores every
 // rankable pre-token protocol with the fitted model in lib/model.ts, writes the ranked board to
@@ -86,7 +86,7 @@ writeFileSync(join(out, 'dossier.json'), buildDossier(out, { text_max_bytes: TEX
 
 const v = radar.validation;
 process.stdout.write(
-  `token radar (radar-4): ${snapshot.protocols.length} protocols, ${snapshot.watchlist.length} on the watchlist, ${board.length} rows scored, ${radar.census.derivative} derivative-screened, ${radar.census.token} already holding a token\n` +
+  `token radar (radar-5): ${snapshot.protocols.length} protocols, ${snapshot.watchlist.length} on the watchlist, ${board.length} rows scored, ${radar.census.derivative} derivative-screened, ${radar.census.token} already holding a token\n` +
     `token radar: value model LOO median fold ${v.median_fold_error}x over ${v.comps} comps (repeated-CV ${v.cv_median_fold_error}x; radar-3 curve ${v.ols_median_fold_error}x, category baseline ${v.baseline_median_fold_error}x), odds AUC ${v.odds_auc}\n` +
     `token radar: wrote ${join(out, 'board.json')}, ${join(out, 'data.js')}, ${join(out, 'dashboard')} (3 files), ${join(out, 'screenshots')} (${shots.length} images) and ${join(out, 'dossier.json')}\n`,
 );

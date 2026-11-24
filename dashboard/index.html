@@ -3,24 +3,25 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<meta name="description" content="radar-4: pre-token protocols ranked by fitted launch value times peer launch odds, every protocol in the snapshot accounted for, every farm plan costed to $/hour.">
-<title>Token Launch Radar — radar-4</title>
+<meta name="description" content="radar-5: pre-token protocols ranked by fitted launch value times peer launch odds, every protocol in the snapshot accounted for, every farm plan costed to $/hour.">
+<title>Token Launch Radar — radar-5</title>
 <link rel="stylesheet" href="app.css">
 </head>
 <body>
 <header>
-  <h1>Token Launch Radar <span class="ver">radar-4</span></h1>
+  <h1>Token Launch Radar <span class="ver">radar-5</span></h1>
   <p class="sub" id="asof"></p>
   <p class="claim">Every protocol in the snapshot is accounted for. Every price on the board comes from a
   model <em>fitted on this snapshot</em> and <em>tested held-out</em> — the tests are printed below, and the
-  strip under them recomputes the board's own claims from the data file, live.</p>
+  strip under them recomputes the board's own claims from the data file, live. Each row also carries its launch window — the age at which the fitted
+  peer odds say a protocol like it typically records a token — so a farm plan can be timed, not just priced.</p>
 </header>
 
 <section id="integrity" class="strip"></section>
 
-<section id="model" class="panel"></section>
+<section id="modelstrip"></section>
 
-<section id="census" class="panel"></section>
+<section id="model" class="panel"></section>
 
 <nav id="controls">
   <input id="q" type="search" placeholder="Search name or slug">
@@ -34,10 +35,13 @@
 
 <main id="board"></main>
 <section id="detail" class="panel" hidden></section>
+<section id="census" class="panel"></section>
 <section id="ledger" class="panel"></section>
 
 <footer>
   <p>Implied value is this entry's own fitted claim, never a prediction that a token will be issued.
+  The launch window is a timing readout from the same fitted odds — the age by which half of like peers
+  already record a token — not a promise that this protocol will issue one, or when.
   A protocol is said to <em>record</em> no token, never to have none: DefiLlama's record is the evidence, and it can lag.</p>
 </footer>
 

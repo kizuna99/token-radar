@@ -1,6 +1,6 @@
-// lib/model.ts — the radar-4 scoring model for token-radar-01.
+// lib/model.ts — the radar-5 scoring model for token-radar-01.
 //
-// Idea in one paragraph: a pre-token protocol has no price, so radar-4 prices
+// Idea in one paragraph: a pre-token protocol has no price, so radar-5 prices
 // the token it would launch with two fits taken from the sealed snapshot
 // itself, each kept only because a held-out test kept it. (1) A launch-value
 // model: a TVL-weighted MEDIAN regression (least absolute deviations, fitted
@@ -15,7 +15,14 @@
 // against tracked age — the peers' record of who ends up issuing. Implied
 // value = launch value x odds, an expected value, and the board ranks by it.
 //
-// What the tests dropped this round (each fitted, tested, then removed):
+// What changed in radar-5 is a readout, not a price: each row now also
+// carries its LAUNCH WINDOW — the fitted odds curve solved for the tracked
+// age at which half of like peers already record a token (~525 days on this
+// snapshot), reported per row as already open or as the months of tracking
+// that remain. It moves no price and no rank; it times the farm plan the
+// price justifies, and the plan's third step says so in words.
+//
+// What the tests dropped in round 1 (each fitted, tested, then removed):
 // the plain least-squares size curve of radar-3 (kept here as a scored
 // reference), a quadratic TVL term, category intercepts and category
 // multiples, gradient-boosted trees, a TVL term and a growth term in the
@@ -25,6 +32,16 @@
 // and on the comps at or above the $50M floor it scores 2.31x against the
 // curve's 2.86x.
 //
+// What the tests dropped in round 2 (fitted and tested the same way, then
+// removed): excluding the comps whose token is itself a dollar-pegged or
+// stablecoin-issuer asset (LOO 3.01–3.09x on the shared comp set, against
+// 2.98x for the full set — the pegged comps anchor the fit, they do not
+// bend it), and clipping the 7-day change symmetrically at ±30 or ±25
+// instead of the fitted range (2.83–2.85x, against 2.81x). The pricing
+// model therefore stands exactly as radar-4 fitted it; radar-5's claim is
+// the window readout and a first screen that prints the model, its tests
+// and the census before the board, not a new fit.
+//
 // Known limit, stated plainly: split the comps by tracked age instead of at
 // random and the extra terms transfer less well than the plain size curve —
 // the weighted fit's edge is in pricing this snapshot's field, the task it is
@@ -33,7 +50,7 @@
 // Everything is a pure function of the snapshot: no clock, no network, no
 // unseeded randomness, so two runs over the same snapshot agree byte for byte.
 
-export const MODEL_VERSION = 'radar-4';
+export const MODEL_VERSION = 'radar-5';
 
 /** One protocol record, as the sealed snapshot carries it. */
 export interface Protocol {
@@ -412,11 +429,54 @@ export function launchOdds(fit: OddsFit, p: Protocol, asOf: string): number {
   return round4(1 / (1 + Math.exp(-z)));
 }
 
+/** The tracked age at which the fitted odds curve crosses 50%: the age by
+ * which half of like peers already record a token. Null when the fitted
+ * slope never carries the curve to 50%. */
+export function oddsMidpointDays(fit: OddsFit): number | null {
+  if (fit.slope <= 0) return null;
+  return Math.round(10 ** (-fit.intercept / fit.slope));
+}
+
+/** A row's launch window, read off the fitted odds curve: whether the
+ * protocol's tracked age is already past the curve's 50% crossing, or how
+ * many months of tracking remain until it reaches that age. A timing
+ * readout only — it moves no price and no rank. */
+export function windowInfo(
+  fit: OddsFit,
+  midpoint: number | null,
+  p: Protocol,
+  asOf: string,
+): { label: string; text: string; timing: string } {
+  const age = ageDays(p, asOf) ?? fit.median_age_days;
+  if (midpoint === null) {
+    return {
+      label: '—',
+      text: 'the fitted odds curve does not cross 50% at any tracked age',
+      timing: 'The fitted peer odds never cross 50% at any tracked age, so the plan runs on the price signal alone.',
+    };
+  }
+  if (age >= midpoint) {
+    return {
+      label: 'open',
+      text: `in the window — ${age} days tracked, past the ~${midpoint}-day age at which the fitted peer odds cross 50%`,
+      timing: `Timing: at ${age} days tracked it is already past the ~${midpoint}-day age where the fitted peer odds cross 50%, so the plan starts inside the window the odds describe — begin now, not later.`,
+    };
+  }
+  const months = (midpoint - age) / 30.4375;
+  const label = months < 1 ? 'opens <1 mo' : `opens ~${Math.round(months)} mo`;
+  const monthsText = months < 1 ? 'under a month' : `about ${Math.round(months)} month${Math.round(months) === 1 ? '' : 's'}`;
+  return {
+    label,
+    text: `opens in ${monthsText} — the fitted peer odds cross 50% at ~${midpoint} days tracked; this protocol is at ${age} days`,
+    timing: `Timing: the fitted peer odds cross 50% at about ${midpoint} days tracked, ${monthsText} past this protocol's age now — start the weekly rhythm so the plan's ${PLAN.weeks} weeks are already running as that window opens.`,
+  };
+}
+
 // ------------------------------------------------------- validation
 
 export interface Validation {
   comps: number;
-  /** radar-4 value model, leave-one-out over the comps. */
+  /** radar-5 value model, leave-one-out over the comps. */
   median_fold_error: number;
   within_2x_pct: number;
   within_3x_pct: number;
@@ -568,7 +628,7 @@ function oddsValidation(protocols: Protocol[], asOf: string): { auc: number; gap
   return { auc: round3(aucs.reduce((a, b) => a + b, 0) / aucs.length), gap: round3(gaps.reduce((a, b) => a + b, 0) / gaps.length) };
 }
 
-/** Score the radar-4 model, the radar-3 curve, the older baseline and the
+/** Score the radar-5 model, the radar-3 curve, the older baseline and the
  * odds model on held-out tests. */
 export function validateModels(snapshot: Snapshot): Validation {
   const comps = pricingComps(snapshot.protocols);
@@ -680,14 +740,15 @@ function coreAction(p: Protocol): string {
   }
 }
 
-/** A costed farm plan: 6 concrete steps, the fifth carrying the costing. */
-export function farmPlan(p: Protocol, implied: number, odds: number): { steps: string[]; verdict: Verdict; perHour: number; cash: number; hours: number; reward: number } {
+/** A costed farm plan: 6 concrete steps, the fifth carrying the costing.
+ * The third step also carries the launch-window timing sentence. */
+export function farmPlan(p: Protocol, implied: number, odds: number, timing: string): { steps: string[]; verdict: Verdict; perHour: number; cash: number; hours: number; reward: number } {
   const eco = planEconomics(p, implied);
   const chainList = p.chains.length > 0 ? p.chains.join(', ') : 'its main chain';
   const steps = [
     `Fund one wallet with the plan's $1,000 and route it to ${p.chains[0] ?? 'the main chain'} (${chainList} listed); budget the bridge and gas in the cost line below before moving anything.`,
     coreAction(p),
-    `Keep a weekly rhythm for ${PLAN.weeks} weeks: one or two genuine sessions a week, about ${Math.max(1, Math.round(eco.hours / PLAN.weeks))} hour(s) a week, never a single burst — eligibility snapshots reward accounts that were simply there, week after week.`,
+    `Keep a weekly rhythm for ${PLAN.weeks} weeks: one or two genuine sessions a week, about ${Math.max(1, Math.round(eco.hours / PLAN.weeks))} hour(s) a week, never a single burst — eligibility snapshots reward accounts that were simply there, week after week. ${timing}`,
     `Stay legible as one real user: the same wallet, no splitting across Sybil wallets, positions held through the whole plan, and a public trail of deposits and claims that a snapshot can read.`,
     `The costing, on the board's printed assumptions: cash costs about ${money(eco.cash)} in gas and bridge fees and the plan takes about ${eco.hours} hours; at a 5% community pool and a 1-in-5,000 farmer share, the fitted value (${money(implied)} at ${(odds * 100).toFixed(1)}% peer odds) prices the expected reward near ${money(eco.reward)} — ${money(eco.perHour)} an hour, which is why this row's verdict is ${eco.verdict}.`,
     `If ${p.name} announces a token, claim from the same wallet in the first window and sell into the listing's liquidity in tranches; if it never does, the plan's loss is capped at the cash cost and the hours, which the verdict already charged for.`,
@@ -711,6 +772,8 @@ export interface BoardRow {
   watchlist: boolean;
   launch_value_usd: number;
   launch_odds: number;
+  window_label: string;
+  launch_window: string;
   implied_value_usd: number;
   verdict: Verdict;
   usd_per_hour: number;
@@ -734,6 +797,7 @@ export interface Radar {
   floor_usd: number;
   value_fit: ValueFit;
   odds_fit: OddsFit;
+  odds_midpoint_days: number | null;
   validation: Validation;
   census: { total: number; ranked: number; derivative: number; token: number; priced: number };
   census_lines: CensusLine[];
@@ -745,6 +809,7 @@ export function buildRadar(snapshot: Snapshot): { board: BoardRow[]; radar: Rada
   const comps = pricingComps(snapshot.protocols);
   const valueFit = fitValue(comps, snapshot.as_of);
   const oddsFit = fitOdds(snapshot.protocols, snapshot.as_of);
+  const midpoint = oddsMidpointDays(oddsFit);
   const validation = validateModels(snapshot);
   const watch = new Set(snapshot.watchlist);
 
@@ -769,8 +834,9 @@ export function buildRadar(snapshot: Snapshot): { board: BoardRow[]; radar: Rada
     censusLines.push({ slug: p.slug, bucket: 'ranked', reason: 'ranked on the board' });
     const launch = launchValue(valueFit, p, snapshot.as_of);
     const odds = launchOdds(oddsFit, p, snapshot.as_of);
+    const win = windowInfo(oddsFit, midpoint, p, snapshot.as_of);
     const implied = Math.max(1, Math.round(launch * odds));
-    const plan = farmPlan(p, implied, odds);
+    const plan = farmPlan(p, implied, odds, win.timing);
     rows.push({
       rank: 0,
       slug: p.slug,
@@ -784,6 +850,8 @@ export function buildRadar(snapshot: Snapshot): { board: BoardRow[]; radar: Rada
       watchlist: watch.has(p.slug),
       launch_value_usd: launch,
       launch_odds: odds,
+      window_label: win.label,
+      launch_window: win.text,
       implied_value_usd: implied,
       verdict: plan.verdict,
       usd_per_hour: plan.perHour,
@@ -804,6 +872,7 @@ export function buildRadar(snapshot: Snapshot): { board: BoardRow[]; radar: Rada
     floor_usd: snapshot.floor_usd,
     value_fit: valueFit,
     odds_fit: oddsFit,
+    odds_midpoint_days: midpoint,
     validation,
     census: {
       total: snapshot.protocols.length,

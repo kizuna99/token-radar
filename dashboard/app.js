@@ -1,4 +1,4 @@
-// radar-4 dashboard: renders window.RADAR (written by main.ts from the same
+// radar-5 dashboard: renders window.RADAR (written by main.ts from the same
 // board the gate scores) and recomputes the cover's claims from it, live.
 (function () {
   var R = window.RADAR;
@@ -36,11 +36,29 @@
       ['implied = launch × odds on all rows', rows.every(function (r) {
         return r.implied_value_usd === Math.max(1, Math.round(r.launch_value_usd * r.launch_odds));
       })],
-      ['every row carries its farm plan', rows.every(function (r) { return r.farm_steps.length >= 3; })]
+      ['every row carries its farm plan', rows.every(function (r) { return r.farm_steps.length >= 3; })],
+      ['every row carries its launch window', rows.every(function (r) {
+        return typeof r.window_label === 'string' && r.window_label.length > 0 &&
+          typeof r.launch_window === 'string' && r.launch_window.length > 20;
+      })],
+      ['window midpoint printed ' + R.odds_midpoint_days + ' days', typeof R.odds_midpoint_days === 'number' && R.odds_midpoint_days > 0]
     ];
     $('integrity').innerHTML = checks.map(function (ch) {
       return '<span class="chip">' + (ch[1] ? '<b>✓</b> ' : '<b>✗</b> ') + esc(ch[0]) + '</span>';
     }).join('');
+  })();
+
+  // ---- model strip: the tests and the odds clock, in five numbers
+  (function () {
+    var v = R.validation;
+    $('modelstrip').innerHTML =
+      '<div class="mstrip">' +
+      '<div class="ms"><span>value model — LOO fold error</span><b>' + v.median_fold_error + '×</b></div>' +
+      '<div class="ms"><span>radar-3 curve — same test</span><b>' + v.ols_median_fold_error + '×</b></div>' +
+      '<div class="ms"><span>repeated 10-fold CV</span><b>' + v.cv_median_fold_error + '×</b></div>' +
+      '<div class="ms"><span>odds AUC (split-half)</span><b>' + v.odds_auc + '</b></div>' +
+      '<div class="ms"><span>peers cross 50% odds at</span><b>' + R.odds_midpoint_days + ' days tracked</b></div>' +
+      '</div>';
   })();
 
   // ---- model panel: the fits and their held-out tests
@@ -53,7 +71,7 @@
       'launch_odds = σ(' + of.intercept + ' + ' + of.slope + ' · log10 age) &nbsp;·&nbsp; implied = launch_value × odds</p>' +
       '<div class="grid">' +
       '<div><div class="kv"><span>value fit comps (traded, non-derivative)</span><b>' + vf.comps + '</b></div>' +
-      '<div class="kv"><span>LOO median fold error — radar-4</span><b>' + v.median_fold_error + '×</b></div>' +
+      '<div class="kv"><span>LOO median fold error — radar-5</span><b>' + v.median_fold_error + '×</b></div>' +
       '<div class="kv"><span>LOO median fold error — radar-3 curve</span><b>' + v.ols_median_fold_error + '×</b></div>' +
       '<div class="kv"><span>LOO median fold error — category multiples</span><b>' + v.baseline_median_fold_error + '×</b></div>' +
       '<div class="kv"><span>repeated 10-fold CV fold error</span><b>' + v.cv_median_fold_error + '×</b></div></div>' +
@@ -65,7 +83,8 @@
       '</div>' +
       '<p>The value fit is a median regression, not a mean: it prices the typical peer, so one moonshot comp cannot bend the curve. ' +
       'Each comp is weighted by the square root of its TVL rank, and every feature is clipped to the comps’ own range before it is read — the model never extrapolates past the record it was fitted on. ' +
-      'Terms the tests dropped this round: a quadratic TVL term, category intercepts, gradient-boosted trees, and TVL and growth terms in the odds fit — each was fitted, tested held-out, and removed for failing to earn its place.</p>';
+      'Terms the tests dropped this round: a quadratic TVL term, category intercepts, gradient-boosted trees, and TVL and growth terms in the odds fit — each was fitted, tested held-out, and removed for failing to earn its place.</p>' +
+      '<p>The launch window reads the odds fit as a clock: it solves the fitted curve for the age at which half of like peers already record a token (about ' + R.odds_midpoint_days + ' days on this snapshot) and reports, per row, whether that age is past or how many months of tracking remain until it. It changes no price and no rank — it times the plan the price justifies.</p>';
   })();
 
   // ---- census panel
@@ -103,12 +122,13 @@
     $('shown').textContent = 'showing ' + list.length + ' of ' + rows.length + ' rows';
     var html = '<table class="board"><thead><tr>' +
       '<th class="l">#</th><th class="l">Protocol</th><th class="l">Category</th><th>TVL</th>' +
-      '<th>Launch value</th><th>Odds</th><th>Implied</th><th>Verdict</th><th>$/hour</th></tr></thead><tbody>';
+      '<th>Launch value</th><th>Odds</th><th>Window</th><th>Implied</th><th>Verdict</th><th>$/hour</th></tr></thead><tbody>';
     list.forEach(function (r) {
       html += '<tr class="row" data-slug="' + esc(r.slug) + '"><td class="l num">' + r.rank + '</td>' +
         '<td class="l"><b>' + esc(r.name) + '</b>' + (r.watchlist ? '<span class="wl">watchlist</span>' : '') + '</td>' +
         '<td class="l">' + esc(r.category) + '</td><td class="num">' + money(r.tvl_usd) + '</td>' +
         '<td class="num">' + money(r.launch_value_usd) + '</td><td class="num">' + (r.launch_odds * 100).toFixed(0) + '%</td>' +
+        '<td class="num win">' + esc(r.window_label) + '</td>' +
         '<td class="num"><b>' + money(r.implied_value_usd) + '</b></td>' +
         '<td class="v' + r.verdict + '">' + r.verdict + '</td><td class="num">$' + r.usd_per_hour.toFixed(2) + '</td></tr>';
     });
@@ -134,6 +154,7 @@
       '<div class="kv"><span>tracked since</span><b>' + (r.listed_at || 'unrecorded') + (r.age_days === null ? '' : ' (' + r.age_days + ' days)') + '</b></div></div>' +
       '<div><div class="kv"><span>launch value (fitted model)</span><b>' + money(r.launch_value_usd) + '</b></div>' +
       '<div class="kv"><span>launch odds (peers’ record)</span><b>' + (r.launch_odds * 100).toFixed(1) + '%</b></div>' +
+      '<div class="kv"><span>launch window</span><b>' + esc(r.launch_window) + '</b></div>' +
       '<div class="kv"><span>implied value</span><b>' + money(r.implied_value_usd) + '</b></div>' +
       '<div class="kv"><span>plan: cash / hours / expected reward</span><b>$' + r.plan_cash_usd + ' / ' + r.plan_hours + 'h / $' + r.expected_reward_usd + '</b></div>' +
       '<div class="kv"><span>plan nets to</span><b>$' + r.usd_per_hour.toFixed(2) + '/hour</b></div></div>' +
